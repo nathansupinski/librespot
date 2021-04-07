@@ -12,6 +12,8 @@ use std::time::Instant;
 use tokio_core::reactor::{Core, Handle};
 use tokio_io::IoStream;
 use url::Url;
+use std::fs;
+use std::fs::OpenOptions;
 
 use librespot::core::authentication::{get_credentials, Credentials};
 use librespot::core::cache::Cache;
@@ -58,6 +60,17 @@ fn setup_logging(verbose: bool) {
             builder.init();
         }
     }
+
+    if Path::new("spotify-pipe-log").exists() {
+      fs::remove_file("spotify-pipe-log").unwrap();
+    }
+
+    let _file = OpenOptions::new()
+                    .create_new(true)
+                    .write(true)
+                    .append(true)
+                    .open("spotify-pipe-log")
+                    .unwrap();
 }
 
 fn list_backends() {

@@ -724,7 +724,7 @@ impl PlayerTrackLoader {
         let audio_file = Subfile::new(decrypted_file, 0xa7);
 
         let result = if self.config.passthrough {
-            match PassthroughDecoder::new(audio_file) {
+            match PassthroughDecoder::new(audio_file, spotify_id) {
                 Ok(result) => Ok(Box::new(result) as Decoder),
                 Err(e) => Err(AudioError::PassthroughError(e)),
             }

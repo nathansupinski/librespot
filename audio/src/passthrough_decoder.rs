@@ -4,6 +4,9 @@ use ogg::{OggReadError, Packet, PacketReader, PacketWriteEndInfo, PacketWriter};
 use std::fmt;
 use std::io::{Read, Seek};
 use std::time::{SystemTime, UNIX_EPOCH};
+use librespot_core::spotify_id::SpotifyId;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
 
 fn write_headers<T: Read + Seek>(
     rdr: &mut PacketReader<T>,
@@ -74,18 +77,30 @@ pub struct PassthroughDecoder<R: Read + Seek> {
     lastgp_page: Option<u64>,
     absgp_page: u64,
     stream_serial: u32,
+    uri: SpotifyId
 }
 
 pub struct PassthroughError(ogg::OggReadError);
 
 impl<R: Read + Seek> PassthroughDecoder<R> {
     /// Constructs a new Decoder from a given implementation of `Read + Seek`.
-    pub fn new(rdr: R) -> Result<Self, PassthroughError> {
+    pub fn new(rdr: R, uri: SpotifyId ) -> Result<Self, PassthroughError> {
         let mut rdr = PacketReader::new(rdr);
         let mut wtr = PacketWriter::new(Vec::new());
 
         let stream_serial = write_headers(&mut rdr, &mut wtr)?;
         info!("Starting passthrough track with serial {}", stream_serial);
+        info!("URI {}", uri.to_uri());
+
+        let mut file = OpenOptions::new()
+                .write(true)
+                .append(true)
+                .open("spotify-pipe-log")
+                .unwrap();
+
+        if let Err(e) = writeln!(file, "{}--{}", stream_serial, uri.to_uri()) {
+            eprintln!("Couldn't write to file: {}", e);
+        }
 
         return Ok(PassthroughDecoder {
             rdr,
@@ -93,6 +108,7 @@ impl<R: Read + Seek> PassthroughDecoder<R> {
             lastgp_page: Some(0),
             absgp_page: 0,
             stream_serial,
+            uri
         });
     }
 }
